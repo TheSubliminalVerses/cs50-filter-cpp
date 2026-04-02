@@ -22,11 +22,14 @@ int main(const int argc, const char *argv[]) {
 
     auto handler = FileHandler(input);
 
-    std::vector<Pixel> &image = handler.getImage();
+    std::vector<std::vector<Pixel>> &image = handler.getImage();
 
     switch (flag[1]) {
         case 'g':
             toGrayScale(image);
+            break;
+        case 's':
+            toSepia(image);
             break;
         default:
             std::cerr << "Invalid flag!" << std::endl;

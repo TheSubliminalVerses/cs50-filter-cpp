@@ -20,7 +20,7 @@ class FileHandler {
     size_t width{0};
     size_t height{0};
 
-    std::vector<Pixel> image{};
+    std::vector<std::vector<Pixel>> image{};
 
 public:
     explicit FileHandler(const std::string &path);
@@ -29,7 +29,7 @@ public:
     const BMPFIleHeader &getFileHeader() const;
     const BMPInfoHeader &getInfoHeader() const;
 
-    std::vector<Pixel> &getImage();
+    std::vector<std::vector<Pixel>> &getImage();
 
     void openOutput(const std::string &path);
     void writeHeaders();

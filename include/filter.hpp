@@ -8,6 +8,10 @@
 #include <vector>
 #include "bmp.hpp"
 
-void toGrayScale(std::vector<Pixel> &image);
+// Turn image into grayscale
+void toGrayScale(std::vector<std::vector<Pixel>> &image);
+
+// Turn image into sepia
+void toSepia(std::vector<std::vector<Pixel>> &image);
 
 #endif //FILTER_FILTER_HPP

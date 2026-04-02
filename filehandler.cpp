@@ -15,10 +15,14 @@ FileHandler::FileHandler(const std::string &path) : src(path, std::ios::in | std
     this->width = abs_width;
     this->height = abs_height;
 
-    for (int i = 0; i < abs_width * abs_height; i++) {
-        Pixel pixel{};
-        this->src.read(reinterpret_cast<char *>(&pixel), sizeof(Pixel));
-        this->image.push_back(pixel);
+    for (int i = 0; i < abs_height; i++) {
+        std::vector<Pixel> pixels{};
+        for (int j = 0; j < abs_width; j++) {
+            Pixel pixel{};
+            this->src.read(reinterpret_cast<char *>(&pixel), sizeof(Pixel));
+            pixels.push_back(pixel);
+        }
+        this->image.push_back(pixels);
     }
 }
 
@@ -30,7 +34,7 @@ const BMPInfoHeader &FileHandler::getInfoHeader() const {
     return this->bih;
 }
 
-std::vector<Pixel> &FileHandler::getImage() {
+std::vector<std::vector<Pixel>> &FileHandler::getImage() {
     return this->image;
 }
 
@@ -44,7 +48,12 @@ void FileHandler::writeHeaders() {
 }
 
 void FileHandler::writeImage() {
-    this->dst.write(reinterpret_cast<char *>(this->image.data()), this->image.size() * sizeof(Pixel));
+    // TODO: Add size checking later
+    const long size = static_cast<long>(this->width * sizeof(Pixel));
+
+    for (auto &row : this->image) {
+        this->dst.write(reinterpret_cast<char *>(row.data()), size);
+    }
 }
 
 FileHandler::~FileHandler() {
