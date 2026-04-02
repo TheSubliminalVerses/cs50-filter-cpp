@@ -14,4 +14,7 @@ void toGrayScale(std::vector<std::vector<Pixel>> &image);
 // Turn image into sepia
 void toSepia(std::vector<std::vector<Pixel>> &image);
 
+// Apply blug to the image
+void blur(std::vector<std::vector<Pixel>> &image, int radius);
+
 #endif //FILTER_FILTER_HPP

@@ -31,6 +31,9 @@ int main(const int argc, const char *argv[]) {
         case 's':
             toSepia(image);
             break;
+        case 'b':
+            blur(image, 1);
+            break;
         default:
             std::cerr << "Invalid flag!" << std::endl;
             return 1;
