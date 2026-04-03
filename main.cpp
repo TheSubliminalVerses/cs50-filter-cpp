@@ -46,7 +46,16 @@ int main(const int argc, const char *argv[]) {
             }
             break;
         case 'd':
-            dither(image);
+            if (argv[4] == nullptr) {
+                std::cerr << "File is required!" << std::endl;
+                return 1;
+            }
+
+            try {
+                dither(image, "palette.csv");
+            } catch (std::exception &e) {
+                std::cerr << e.what() << std::endl;
+            }
             break;
         default:
             std::cerr << "Invalid flag!" << std::endl;

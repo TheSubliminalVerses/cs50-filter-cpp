@@ -21,6 +21,6 @@ void blur(std::vector<std::vector<Pixel>> &image, int radius);
 void edgeDetection(std::vector<std::vector<Pixel>> &image, int radius);
 
 // Apply dithering
-void dither(std::vector<std::vector<Pixel>> &image);
+void dither(std::vector<std::vector<Pixel>> &image, const std::string &config);
 
 #endif //FILTER_FILTER_HPP

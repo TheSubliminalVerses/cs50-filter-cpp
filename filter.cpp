@@ -6,11 +6,12 @@
 #include <utility>
 #include <fstream>
 
+#include <lua.hpp>
+#include <lualib.h>
+#include <lauxlib.h>
+
 #include "include/bmp.hpp"
 #include "include/filter.hpp"
-
-#include <format>
-#include <iostream>
 
 template <typename T>
 concept Numeric = std::is_arithmetic_v<T>;
@@ -194,21 +195,14 @@ void edgeDetection(std::vector<std::vector<Pixel> > &image, const int radius) {
     }
 }
 
-void dither(std::vector<std::vector<Pixel> > &image) {
-    std::ifstream src("palette.csv", std::ios::in);
-    if (!src.is_open()) {
-        std::cerr << "Unable to open file" << std::endl;
-    }
+void dither(std::vector<std::vector<Pixel> > &image, const std::string &config) {
+    // TODO: Write a smol rust script
+    lua_State *L = luaL_newstate();
 
-    std::vector<Pixel> palette{};
-
-    std::string line;
-    while (std::getline(src, line)) {
-        std::stringstream ss(line);
-        Pixel pixel{};
-        ss >> pixel;
-        palette.push_back(pixel);
-    }
+    luaL_openlibs(L);
+    lua_pushstring(L, config.c_str());
+    lua_setglobal(L, "CONFIG");
+    // TODO: Finish implementing lua
 
     int width = 0;
     int height = 0;
@@ -228,31 +222,46 @@ void dither(std::vector<std::vector<Pixel> > &image) {
     for (int i = 0; i < height - 1; i++) {
         for (int j = 0; j < width - 1; j++) {
             Pixel oldPixel = image[i][j];
-            auto [blue, green, red] = findClosestPaletteColor(oldPixel, palette);
+            Pixel newPixel = findClosestPaletteColor(oldPixel, palette);
 
-            image[i][j].blue = blue;
-            image[i][j].green = green;
-            image[i][j].red = red;
+            image[i][j] = newPixel;
 
-            int blue_q_err = oldPixel.blue - blue;
-            int green_q_err = oldPixel.green - green;
-            int red_q_err = oldPixel.red - red;
+            uint8_t errBlue = 0;
+            uint8_t errGreen = 0;
+            uint8_t errRed = 0;
 
-            image[i + 1][j].blue = image[i + 1][j].blue + blue_q_err * 7/16;
-            image[i + 1][j].green = image[i + 1][j].green + green_q_err * 7/16;
-            image[i + 1][j].red = image[i + 1][j].red + red_q_err * 7/16;
+            if (isCastable<int, uint8_t>(oldPixel.blue - newPixel.blue)) {
+                errBlue = static_cast<uint8_t>(oldPixel.blue- newPixel.blue);
+            } else {
+                throw std::overflow_error("Color value is too large!");
+            }
 
-            image[i - 1][j + 1].blue = image[i - 1][j + 1].blue +blue_q_err * 3/16;
-            image[i - 1][j + 1].green = image[i - 1][j + 1].green + green_q_err * 3/16;
-            image[i - 1][j + 1].red = image[i - 1][j + 1].red + red_q_err * 3/16;
+            if (isCastable<int, uint8_t>(oldPixel.green - newPixel.green)) {
+                errGreen = static_cast<uint8_t>(oldPixel.green - newPixel.green);
+            } else {
+                throw std::overflow_error("Color value is too large!");
+            }
 
-            image[i][j + 1].blue = image[i][j + 1].blue + blue_q_err * 5/16;
-            image[i][j + 1].green = image[i][j + 1].green + green_q_err * 5/16;
-            image[i][j + 1].red = image[i][j + 1].red + red_q_err * 5/16;
+            if (isCastable<int, uint8_t>(oldPixel.red - newPixel.red)) {
+                errRed = static_cast<uint8_t>(oldPixel.red- newPixel.red);
+            } else {
+                throw std::overflow_error("Color value is too large!");
+            }
 
-            image[i + 1][j + 1].blue = image[i + 1][j + 1].blue + blue_q_err * 1/16;
-            image[i + 1][j + 1].green = image[i + 1][j + 1].green + green_q_err * 1/16;
-            image[i + 1][j + 1].red = image[i + 1][j + 1].red + red_q_err * 1/16;
+            Pixel error = { errBlue, errGreen, errRed };
+
+            auto spreadError = [&](const int nx, const int ny, const int weight) {
+                if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                    image[ny][nx].blue = image[ny][nx].blue + error.blue * weight;
+                    image[ny][nx].green = image[ny][nx].green + error.green * weight;
+                    image[ny][nx].red = image[ny][nx].red + error.red * weight;
+                }
+            };
+
+            spreadError(j + 1, i, 7/16);
+            spreadError(j - 1, i + 1, 3/16);
+            spreadError(j, i + 1, 5/16);
+            spreadError(j + 1, i + 1, 1/16);
         }
     }
 }
