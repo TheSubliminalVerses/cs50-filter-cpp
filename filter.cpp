@@ -6,10 +6,6 @@
 #include <utility>
 #include <fstream>
 
-#include <lua.hpp>
-#include <lualib.h>
-#include <lauxlib.h>
-
 #include "include/bmp.hpp"
 #include "include/filter.hpp"
 
@@ -20,6 +16,30 @@ concept Numeric = std::is_arithmetic_v<T>;
 template <Numeric T, Numeric U>
 bool isCastable(T value) {
     return std::cmp_less_equal(value, std::numeric_limits<U>::max());
+}
+
+std::vector<std::vector<std::string>> parseCSV(const std::string &fileName) {
+    std::ifstream file(fileName, std::ios::in);
+    if (!file.is_open()) {
+        throw std::runtime_error("Could not open file!");
+    }
+
+    std::string line;
+    std::vector<std::vector<std::string>> palette{};
+
+    while (std::getline(file, line)) {
+        std::stringstream ss(line);
+
+        std::string value;
+        std::vector<std::string> row{};
+
+        while (std::getline(ss, value, ',')) {
+            row.push_back(value);
+        }
+        palette.push_back(row);
+    }
+
+    return palette;
 }
 
 Pixel findClosestPaletteColor(const Pixel targetColor, const std::vector<Pixel> &palette) {
@@ -196,13 +216,20 @@ void edgeDetection(std::vector<std::vector<Pixel> > &image, const int radius) {
 }
 
 void dither(std::vector<std::vector<Pixel> > &image, const std::string &config) {
-    // TODO: Write a smol rust script
-    lua_State *L = luaL_newstate();
+    std::vector<Pixel> palette{};
 
-    luaL_openlibs(L);
-    lua_pushstring(L, config.c_str());
-    lua_setglobal(L, "CONFIG");
-    // TODO: Finish implementing lua
+    auto parsedFile = parseCSV(config);
+    for (auto &row : parsedFile) {
+        int blue = std::stoi(row[0]);
+        int green = std::stoi(row[1]);
+        int red = std::stoi(row[2]);
+
+        blue = std::min(255, blue);
+        green = std::min(255, green);
+        red = std::min(255, red);
+
+        palette.push_back(Pixel { static_cast<uint8_t>(blue), static_cast<uint8_t>(green), static_cast<uint8_t>(red) });
+    }
 
     int width = 0;
     int height = 0;
@@ -221,8 +248,8 @@ void dither(std::vector<std::vector<Pixel> > &image, const std::string &config) 
 
     for (int i = 0; i < height - 1; i++) {
         for (int j = 0; j < width - 1; j++) {
-            Pixel oldPixel = image[i][j];
-            Pixel newPixel = findClosestPaletteColor(oldPixel, palette);
+            const Pixel oldPixel = image[i][j];
+            const Pixel newPixel = findClosestPaletteColor(oldPixel, palette);
 
             image[i][j] = newPixel;
 

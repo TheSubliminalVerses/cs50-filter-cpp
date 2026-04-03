@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 4.2)
 project(filter)
 
-find_package(Lua REQUIRED)
-
 set(CMAKE_CXX_STANDARD 20)
 
 add_executable(filter main.cpp
@@ -12,5 +10,3 @@ add_executable(filter main.cpp
         include/filter.hpp
         filter.cpp
 )
-
-target_link_libraries(filter PRIVATE Lua)
