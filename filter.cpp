@@ -2,10 +2,20 @@
 // Created by mpolesensky on 02/04/2026.
 //
 #include <vector>
+#include <complex>
+#include <utility>
 
 #include "include/bmp.hpp"
 #include "include/filter.hpp"
 
+template <typename T>
+concept Numeric = std::is_arithmetic_v<T>;
+
+
+template <Numeric T, Numeric U>
+bool isCastable(T value) {
+    return std::cmp_less_equal(value, std::numeric_limits<U>::max());
+}
 
 void toGrayScale(std::vector<std::vector<Pixel>> &image) {
     for (auto &row : image) {
@@ -45,8 +55,20 @@ void blur(std::vector<std::vector<Pixel>> &image, const int radius) {
     const int kSize = 2 * radius + 1;
     const int numPix = kSize * kSize;
 
-    const int height = image.size();
-    const int width = image[0].size();
+    int height = 0;
+    int width = 0;
+
+    if (isCastable<unsigned long, int>(image.size())) {
+        height = static_cast<int>(image.size());
+    } else {
+        throw std::overflow_error("Vector size is too large!");
+    }
+
+    if (isCastable<unsigned long, int>(image[0].size())) {
+        width = static_cast<int>(image[0].size());
+    } else {
+        throw std::overflow_error("Vector size is too large!");
+    }
 
     for (int i = 0; i < height - 1; i++) {
         for (int j = 0; j < width - 1; j++) {
@@ -71,13 +93,78 @@ void blur(std::vector<std::vector<Pixel>> &image, const int radius) {
             int avgGreen = sumGreen / numPix;
             int avgRed = sumRed / numPix;
 
-            avgBlue =std::min(255, avgBlue);
+            avgBlue = std::min(255, avgBlue);
             avgGreen = std::min(255, avgGreen);
             avgRed = std::min(255, avgRed);
 
             image[i][j].blue = static_cast<uint8_t>(avgBlue);
             image[i][j].green = static_cast<uint8_t>(avgGreen);
             image[i][j].red = static_cast<uint8_t>(avgRed);
+        }
+    }
+}
+
+void edgeDetection(std::vector<std::vector<Pixel> > &image, const int radius) {
+    auto imgCpy = image;
+
+    int height = 0;
+    int width = 0;
+
+    if (isCastable<unsigned long, int>(image.size())) {
+        height = static_cast<int>(image.size());
+    } else {
+        throw std::overflow_error("Vector size is too large!");
+    }
+
+    if (isCastable<unsigned long, int>(image[0].size())) {
+        width = static_cast<int>(image[0].size());
+    } else {
+        throw std::overflow_error("Vector size is too large!");
+    }
+
+    const std::vector<std::vector<int>> kx = { { -1, 0, 1 }, { -2, 0, 2 }, { -1, 0, 1 } };
+    const std::vector<std::vector<int>> ky = { { 1, 2, 1 }, { 0, 0, 0 }, { -1, -2, -1 } };
+
+    for (int i = 0; i < height - 1; i++) {
+        for (int j = 0; j < width - 1; j++) {
+            int sumBlueX = 0;
+            int sumGreenX = 0;
+            int sumRedX = 0;
+
+            int sumBlueY = 0;
+            int sumGreenY = 0;
+            int sumRedY = 0;
+
+            for (int y = -radius; y <= radius; y++) {
+                for (int x = -radius; x <= radius; x++) {
+                    const int nx = x + j;
+                    const int ny = y + i;
+
+                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                        const auto [blue, green, red] = imgCpy[ny][nx];
+
+                        sumBlueX = sumBlueX + blue * kx[y + 1][x + 1];
+                        sumGreenX = sumGreenX + green * kx[y + 1][x + 1];
+                        sumRedX = sumRedX + red * kx[y + 1][x + 1];
+
+                        sumBlueY = sumBlueY + blue * ky[y + 1][x + 1];
+                        sumGreenY = sumGreenY + green * ky[y + 1][x + 1];
+                        sumRedY = sumRedY + red * ky[y + 1][x + 1];
+
+                        double blueMag = std::sqrt(std::pow(sumBlueX, 2) + std::pow(sumBlueY, 2));
+                        double greenMag = std::sqrt(std::pow(sumGreenX, 2) + std::pow(sumGreenY, 2));
+                        double redMag = std::sqrt(std::pow(sumRedX, 2) + std::pow(sumRedY, 2));
+
+                        blueMag = std::min(255, static_cast<int>(blueMag));
+                        greenMag = std::min(255, static_cast<int>(greenMag));
+                        redMag = std::min(255, static_cast<int>(redMag));
+
+                        image[i][j].blue = static_cast<uint8_t>(blueMag);
+                        image[i][j].green = static_cast<uint8_t>(greenMag);
+                        image[i][j].red = static_cast<uint8_t>(redMag);
+                    }
+                }
+            }
         }
     }
 }

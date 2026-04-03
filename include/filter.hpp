@@ -17,4 +17,7 @@ void toSepia(std::vector<std::vector<Pixel>> &image);
 // Apply blug to the image
 void blur(std::vector<std::vector<Pixel>> &image, int radius);
 
+// Apply the sobel operator
+void edgeDetection(std::vector<std::vector<Pixel>> &image, int radius);
+
 #endif //FILTER_FILTER_HPP

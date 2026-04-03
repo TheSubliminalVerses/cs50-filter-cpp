@@ -32,7 +32,18 @@ int main(const int argc, const char *argv[]) {
             toSepia(image);
             break;
         case 'b':
-            blur(image, 1);
+            try {
+                blur(image, 1);
+            } catch (std::exception &e) {
+                std::cerr << e.what() << std::endl;
+            }
+            break;
+        case 'e':
+            try {
+                edgeDetection(image, 1);
+            } catch (std::exception &e) {
+                std::cerr << e.what() << std::endl;
+            }
             break;
         default:
             std::cerr << "Invalid flag!" << std::endl;
