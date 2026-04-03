@@ -4,9 +4,13 @@
 #include <vector>
 #include <complex>
 #include <utility>
+#include <fstream>
 
 #include "include/bmp.hpp"
 #include "include/filter.hpp"
+
+#include <format>
+#include <iostream>
 
 template <typename T>
 concept Numeric = std::is_arithmetic_v<T>;
@@ -16,6 +20,27 @@ template <Numeric T, Numeric U>
 bool isCastable(T value) {
     return std::cmp_less_equal(value, std::numeric_limits<U>::max());
 }
+
+Pixel findClosestPaletteColor(const Pixel targetColor, const std::vector<Pixel> &palette) {
+    int shortestDistance = INT32_MAX;
+    Pixel closesColor = palette[0];
+
+    for (const auto &color : palette) {
+        const int dR = color.red - targetColor.red;
+        const int dG = color.green - targetColor.green;
+        const int dB = color.blue - targetColor.blue;
+
+        int distanceSQ = (dR * dR) + (dG * dG) + (dB * dB);
+
+        if (distanceSQ < shortestDistance) {
+            shortestDistance = distanceSQ;
+            closesColor = color;
+        }
+    }
+
+    return closesColor;
+}
+
 
 void toGrayScale(std::vector<std::vector<Pixel>> &image) {
     for (auto &row : image) {
@@ -170,5 +195,64 @@ void edgeDetection(std::vector<std::vector<Pixel> > &image, const int radius) {
 }
 
 void dither(std::vector<std::vector<Pixel> > &image) {
-    // TODO: Create a Paltte
+    std::ifstream src("palette.csv", std::ios::in);
+    if (!src.is_open()) {
+        std::cerr << "Unable to open file" << std::endl;
+    }
+
+    std::vector<Pixel> palette{};
+
+    std::string line;
+    while (std::getline(src, line)) {
+        std::stringstream ss(line);
+        Pixel pixel{};
+        ss >> pixel;
+        palette.push_back(pixel);
+    }
+
+    int width = 0;
+    int height = 0;
+
+    if (isCastable<unsigned long, int>(image.size())) {
+        height = static_cast<int>(image.size());
+    } else {
+        throw std::overflow_error("Vector size is too large!");
+    }
+
+    if (isCastable<unsigned long, int>(image[0].size())) {
+        width = static_cast<int>(image[0].size());
+    } else {
+        throw std::overflow_error("Vector size is too large!");
+    }
+
+    for (int i = 0; i < height - 1; i++) {
+        for (int j = 0; j < width - 1; j++) {
+            Pixel oldPixel = image[i][j];
+            auto [blue, green, red] = findClosestPaletteColor(oldPixel, palette);
+
+            image[i][j].blue = blue;
+            image[i][j].green = green;
+            image[i][j].red = red;
+
+            int blue_q_err = oldPixel.blue - blue;
+            int green_q_err = oldPixel.green - green;
+            int red_q_err = oldPixel.red - red;
+
+            image[i + 1][j].blue = image[i + 1][j].blue + blue_q_err * 7/16;
+            image[i + 1][j].green = image[i + 1][j].green + green_q_err * 7/16;
+            image[i + 1][j].red = image[i + 1][j].red + red_q_err * 7/16;
+
+            image[i - 1][j + 1].blue = image[i - 1][j + 1].blue +blue_q_err * 3/16;
+            image[i - 1][j + 1].green = image[i - 1][j + 1].green + green_q_err * 3/16;
+            image[i - 1][j + 1].red = image[i - 1][j + 1].red + red_q_err * 3/16;
+
+            image[i][j + 1].blue = image[i][j + 1].blue + blue_q_err * 5/16;
+            image[i][j + 1].green = image[i][j + 1].green + green_q_err * 5/16;
+            image[i][j + 1].red = image[i][j + 1].red + red_q_err * 5/16;
+
+            image[i + 1][j + 1].blue = image[i + 1][j + 1].blue + blue_q_err * 1/16;
+            image[i + 1][j + 1].green = image[i + 1][j + 1].green + green_q_err * 1/16;
+            image[i + 1][j + 1].red = image[i + 1][j + 1].red + red_q_err * 1/16;
+        }
+    }
 }

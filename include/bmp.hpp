@@ -36,4 +36,10 @@ struct Pixel {
     uint8_t red{0};
 };
 
+
+inline std::istream &operator>>(std::istream &is, Pixel &p) {
+    is >> p.blue >> p.green >> p.red;
+    return is;
+}
+
 #endif //FILTER_BMP_HPP
