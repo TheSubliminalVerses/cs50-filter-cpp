@@ -168,3 +168,7 @@ void edgeDetection(std::vector<std::vector<Pixel> > &image, const int radius) {
         }
     }
 }
+
+void dither(std::vector<std::vector<Pixel> > &image) {
+    // TODO: Create a Paltte
+}

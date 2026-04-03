@@ -6,6 +6,7 @@
 #define FILTER_BMP_HPP
 
 #include <cstdint>
+#include <istream>
 
 struct BMPFIleHeader {
     uint16_t bfType{0x4d42};

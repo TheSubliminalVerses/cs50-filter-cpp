@@ -45,6 +45,9 @@ int main(const int argc, const char *argv[]) {
                 std::cerr << e.what() << std::endl;
             }
             break;
+        case 'd':
+            dither(image);
+            break;
         default:
             std::cerr << "Invalid flag!" << std::endl;
             return 1;

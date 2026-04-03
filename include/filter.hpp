@@ -20,4 +20,7 @@ void blur(std::vector<std::vector<Pixel>> &image, int radius);
 // Apply the sobel operator
 void edgeDetection(std::vector<std::vector<Pixel>> &image, int radius);
 
+// Apply dithering
+void dither(std::vector<std::vector<Pixel>> &image);
+
 #endif //FILTER_FILTER_HPP

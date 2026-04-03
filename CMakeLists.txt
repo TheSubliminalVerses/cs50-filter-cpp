@@ -8,4 +8,5 @@ add_executable(filter main.cpp
         filehandler.cpp
         include/filehandler.hpp
         include/filter.hpp
-        filter.cpp)
+        filter.cpp
+)
