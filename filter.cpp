@@ -44,22 +44,22 @@ std::vector<std::vector<std::string>> parseCSV(const std::string &fileName) {
 
 Pixel findClosestPaletteColor(const Pixel targetColor, const std::vector<Pixel> &palette) {
     int shortestDistance = INT32_MAX;
-    Pixel closesColor = palette[0];
+    Pixel closestColor = palette[0];
 
     for (const auto &color : palette) {
         const int dR = color.red - targetColor.red;
         const int dG = color.green - targetColor.green;
         const int dB = color.blue - targetColor.blue;
 
-        int distanceSQ = (dR * dR) + (dG * dG) + (dB * dB);
+        int distanceSQ = 2*(dR * dR) + 4*(dG * dG) + 3*(dB * dB);
 
         if (distanceSQ < shortestDistance) {
             shortestDistance = distanceSQ;
-            closesColor = color;
+            closestColor = color;
         }
     }
 
-    return closesColor;
+    return closestColor;
 }
 
 
@@ -216,6 +216,8 @@ void edgeDetection(std::vector<std::vector<Pixel> > &image, const int radius) {
 }
 
 void dither(std::vector<std::vector<Pixel> > &image, const std::string &config) {
+    const auto imgCpy = image;
+
     std::vector<Pixel> palette{};
 
     auto parsedFile = parseCSV(config);
@@ -248,7 +250,7 @@ void dither(std::vector<std::vector<Pixel> > &image, const std::string &config) 
 
     for (int i = 0; i < height - 1; i++) {
         for (int j = 0; j < width - 1; j++) {
-            const Pixel oldPixel = image[i][j];
+            const Pixel oldPixel = imgCpy[i][j];
             const Pixel newPixel = findClosestPaletteColor(oldPixel, palette);
 
             image[i][j] = newPixel;
@@ -270,7 +272,7 @@ void dither(std::vector<std::vector<Pixel> > &image, const std::string &config) 
             }
 
             if (isCastable<int, uint8_t>(oldPixel.red - newPixel.red)) {
-                errRed = static_cast<uint8_t>(oldPixel.red- newPixel.red);
+                errRed = static_cast<uint8_t>(oldPixel.red - newPixel.red);
             } else {
                 throw std::overflow_error("Color value is too large!");
             }
@@ -279,9 +281,9 @@ void dither(std::vector<std::vector<Pixel> > &image, const std::string &config) 
 
             auto spreadError = [&](const int nx, const int ny, const int weight) {
                 if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                    image[ny][nx].blue = image[ny][nx].blue + error.blue * weight;
-                    image[ny][nx].green = image[ny][nx].green + error.green * weight;
-                    image[ny][nx].red = image[ny][nx].red + error.red * weight;
+                    image[ny][nx].blue = std::max(0, std::min(255, imgCpy[ny][nx].blue + error.blue + weight));
+                    image[ny][nx].green = std::max(0, std::min(255, imgCpy[ny][nx].green + error.green + weight));
+                    image[ny][nx].red = std::max(0, std::min(255, imgCpy[ny][nx].red + error.red + weight));
                 }
             };
 
